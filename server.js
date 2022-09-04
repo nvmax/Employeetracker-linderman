@@ -110,3 +110,30 @@ function runSearch() {
         });
 }
 
+// view all employees 
+function viewAllEmployees() {
+    db.query('SELECT * FROM employee', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        runSearch();
+    });
+}
+
+// view all departments
+function viewAllDepartments() {
+    db.query('SELECT * FROM department', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        runSearch();
+    });
+}
+
+// view all roles
+function viewAllRoles() {
+    db.query('SELECT * FROM role', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        runSearch();
+    });
+}
+
