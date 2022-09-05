@@ -118,7 +118,14 @@ function runSearch() {
 // view all employees 
 function viewAllEmployees() {
     // get all employees with title and department
-    db.query('SELECT employee.id, CONCAT(employee.first_name, " ", employee.last_name) AS employee_name, role.title, department.name AS department FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id', function (err, res) {
+    db.query(`
+            SELECT employee.id, 
+            CONCAT(employee.first_name, " ", employee.last_name) 
+            AS employee_name, role.title, department.name 
+            AS department FROM employee 
+            LEFT JOIN role ON employee.role_id = role.id 
+            LEFT JOIN department ON role.department_id = department.id`
+            , function (err, res) {
         if (err) throw err;
         console.table(res);
         runSearch();
@@ -165,7 +172,16 @@ function viewEmployeesByManager() {
             .then(function (answer) {
                 let managerId = answer.manager.split(" ");
                 // concat employee first and last name from employee table get role name and Manager name from employee table
-                db.query('SELECT employee.id, CONCAT(employee.first_name, " ", employee.last_name) AS employee_name, role.title, department.name AS department, CONCAT(manager.first_name, " ", manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id WHERE employee.manager_id = ?', [managerId[2]], function (err, res) {
+                db.query(`
+                    SELECT employee.id, 
+                    CONCAT(employee.first_name, " ", employee.last_name) 
+                    AS employee_name, role.title, department.name AS department, 
+                    CONCAT(manager.first_name, " ", manager.last_name) 
+                    AS manager FROM employee 
+                    LEFT JOIN role ON employee.role_id = role.id 
+                    LEFT JOIN department ON role.department_id = department.id 
+                    LEFT JOIN employee manager ON manager.id = employee.manager_id WHERE employee.manager_id = ?`
+                , [managerId[2]], function (err, res) {
                     if (err) throw err;
                     console.table(res);
                     runSearch();
@@ -197,11 +213,21 @@ function viewEmployeesByDepartment() {
                 departmentId = departmentId.replace(/\D/g, '');
                 console.log(departmentId);
                 // concats employee first and last name from employee table get role name and department name from employee table
-                db.query('SELECT employee.id, CONCAT(employee.first_name, " ", employee.last_name) AS employee_name, role.title, department.name AS department FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id WHERE department.id = ?', [departmentId], function (err, res) {
-                    if (err) throw err;
-                    console.table(res);
-                    runSearch();
-                });
+                db.query(
+                    `SELECT employee.id, 
+                    CONCAT(employee.first_name, " ", employee.last_name) 
+                    AS employee_name, role.title, department.name 
+                    AS department FROM employee 
+                    LEFT JOIN role 
+                    ON employee.role_id = role.id 
+                    LEFT JOIN department 
+                    ON role.department_id = department.id 
+                    WHERE department.id = ?`
+                    , [departmentId], function (err, res) {
+                        if (err) throw err;
+                        console.table(res);
+                        runSearch();
+                    });
             });
     });
 }
@@ -373,86 +399,240 @@ function updateRoleDepartment() {
 
 // update employee role
 function updateEmployeeRole() {
-    // get list of employees and their roles and id
-    db.query('SELECT * FROM employee', function (err, res) {
+    // get list of employees and their roles and push to array then get department titles and roles 
+    db.query(`
+            SELECT employee.id, 
+            CONCAT(employee.first_name, " ", employee.last_name) AS employee_name, 
+            role.title, department.name 
+            AS department FROM employee 
+            LEFT JOIN role 
+            ON employee.role_id = role.id 
+            LEFT JOIN department 
+            ON role.department_id = department.id`
+        , function (err, res) {
+            let employeeArray = [];
+            for (let i = 0; i < res.length; i++) {
+                employeeArray.push(res[i].employee_name + " " + res[i].id);
+            }
+            db.query('SELECT * FROM role', function (err, res) {
+                let roleArray = [];
+                for (let i = 0; i < res.length; i++) {
+                    roleArray.push(res[i].title + " " + res[i].id);
+                }
+                inquirer
+                    .prompt([
+                        {
+                            name: 'employee',
+                            type: 'list',
+                            message: 'Which employee would you like to update?',
+                            choices: employeeArray
+                        },
+                        {
+                            name: 'role',
+                            type: 'list',
+                            message: 'What is the new role?',
+                            choices: roleArray
+                        }
+                    ])
+                    .then(function (answer) {
+                        let employeeId = answer.employee.replace(/\D/g, '');
+                        console.log(employeeId);
+                        let roleId = answer.role.replace(/\D/g, '');
+                        console.log(roleId);
+                        console.log(answer.employee);
+                        console.log(answer.role);
+                        db.query('UPDATE employee SET ? WHERE ?',
+                            [
+                                {
+                                    role_id: roleId
+                                },
+                                {
+                                    id: employeeId
+                                }
+                            ],
+                            function (err, res) {
+                                if (err) throw err;
+                                console.log('Employee updated successfully!');
+                                runSearch();
+                            });
+                    });
+            });
+        }
+    );
+}
+
+// update employee manager
+function updateEmployeeManager() {
+    // get list of employees and id's and push to array for choices in inquirer that are not null
+    db.query('SELECT * FROM employee WHERE manager_id IS NOT NULL', function (err, res) {
         if (err) throw err;
-        console.table(res);
         let employeeArray = [];
         for (let i = 0; i < res.length; i++) {
             employeeArray.push(res[i].first_name + " " + res[i].last_name + " " + res[i].id);
         }
-        // get list of roles and id
-        db.query('SELECT * FROM role', function (err, res) {
-            if (err) throw err;
-            console.table(res);
-            let roleArray = [];
-            for (let i = 0; i < res.length; i++) {
-                roleArray.push(res[i].title + " " + res[i].id);
-            }
-            inquirer
-                .prompt([
-                    {
-                        name: 'employee',
-                        type: 'list',
-                        message: 'Which employee would you like to update?',
-                        choices: employeeArray
-                    },
-                    {
-                        name: 'role',
-                        type: 'list',
-                        message: 'What is the employees new role?',
-                        choices: roleArray
+        inquirer
+            .prompt([
+                {
+                    name: 'employee',
+                    type: 'list',
+                    message: 'Which employee would you like to update?',
+                    choices: employeeArray
+                },
+            ])
+            .then(function (answer) {
+                let employeeId = answer.employee.replace(/\D/g, '');
+                // get list of managers and id's and push to array for choices in inquirer
+                db.query('SELECT * FROM employee WHERE manager_id IS NULL', function (err, res) {
+                    if (err) throw err;
+                    let managerArray = [];
+                    for (let i = 0; i < res.length; i++) {
+                        managerArray.push(res[i].first_name + " " + res[i].last_name + " " + res[i].id);
                     }
-                ])
-                .then(function (answer) {
-                    let employeeId = answer.employee.split(" ");
-                    let roleId = answer.role.split(" ");
-                    db.query('UPDATE employee SET ? WHERE ?', [{ role_id: roleId[2] }, { id: employeeId[2] }], function (err, res) {
-                        if (err) throw err;
+                    inquirer
+                        .prompt([
+                            {
+                                name: 'manager',
+                                type: 'list',
+                                message: 'Who is the new manager?',
+                                choices: managerArray
+                            },
+                        ])
+                        .then(function (answer) {
+                            let managerId = answer.manager.replace(/\D/g, '');
+                            console.log(managerId);
+                            db.query('UPDATE employee SET manager_id = ? WHERE id = ?', [managerId, employeeId], function (err, res) {
+                                if (err) throw err;
+                                console.log('Employee updated successfully!');
+                                runSearch();
+                            });
+                        });
+                });
+            });
+    });
 
-                        // get department name for array
-                        db.query('SELECT * FROM department', function (err, res) {
+}
+
+// delete employee
+function deleteEmployee() {
+    // get list of employees and their roles and id
+    db.query('SELECT * FROM employee', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        // using input from user get id of employee to delete
+        inquirer
+            .prompt([
+                {
+                    name: 'id',
+                    type: 'input',
+                    message: "What is the ID of the employee you would like to delete?"
+                }
+            ])
+            .then(function (answer) {
+                db.query(
+                    'DELETE FROM employee WHERE id = ?',
+                    [
+                        answer.id,
+                    ],
+                    function (err) {
+                        if (err) throw err;
+                        console.log('Your employee was deleted successfully!');
+                        // show updated employee using ID that was input from user
+                        db.query('SELECT * FROM employee WHERE id = ?', [answer.id], function (err, res) {
                             if (err) throw err;
                             console.table(res);
-                            let departmentArray = [];
-                            for (let i = 0; i < res.length; i++) {
-                                departmentArray.push(res[i].name + " " + res[i].id);
-                            }
-                            // using department array use to update employee department
-                            inquirer
-                                .prompt([
-                                    {
-                                        name: 'department',
-                                        type: 'list',
-                                        message: 'What is the employees new department?',
-                                        choices: departmentArray
-                                    }
-                                ])
-                                .then(function (answer) {
-                                    let departmentId = answer.department.split(" ");
-                                    console.log(departmentId);
-                                    // update employee department.name
-                                    console.log(departmentId[1]);
-                                    db.query('UPDATE employee SET ? WHERE ?', [{ department_id: departmentId[1] }, { id: employeeId[2] }], function (err, res) {
 
-                                   
-
-                                        console.log('Employee role updated successfully!');
-                                        runSearch();
-                                    });
-                                });
-                        });
+                            runSearch();
+                        }
+                        );
                     });
-                });
-        });
+            });
     });
 }
 
+// delete department
+function deleteDepartment() {
+    // get list of departments and their id
+    db.query('SELECT * FROM department', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        // get departments in array
+        let departmentArray = [];
+        for (let i = 0; i < res.length; i++) {
+            departmentArray.push(res[i].name + " " + res[i].id);
+        }
+        inquirer
+            .prompt([
+                {
+                    name: 'department',
+                    type: 'list',
+                    message: 'Which department would you like to delete?',
+                    choices: departmentArray
+                },
+            ])
+            .then(function (answer) {
+                let departmentId = answer.department.split(" ");
+                db.query('DELETE FROM department WHERE id = ?', [departmentId[1]], function (err, res) {
+                    if (err) throw err;
+                    console.log('Department deleted successfully!');
+                    runSearch();
+                });
+            });
+    });
 
+}
 
+// delete role
+function deleteRole() {
+    // get list of roles and their id
+    db.query('SELECT * FROM role', function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        // using input from user get id of role to delete
+        inquirer
+            .prompt([
+                {
+                    name: 'id',
+                    type: 'input',
+                    message: "What is the ID of the role you would like to delete?"
+                },
+            ])
+            .then(function (answer) {
+                db.query(
+                    'DELETE FROM role WHERE id = ?',
+                    [
+                        answer.id,
+                    ],
+                    function (err) {
+                        if (err) throw err;
+                        console.log('Your role was deleted successfully!');
+                        // show updated role using ID that was input from user
+                        db.query('SELECT * FROM role WHERE id = ?', [answer.id], function (err, res) {
+                            if (err) throw err;
+                            console.table(res);
 
+                            runSearch();
+                        }
+                        );
+                    });
+            });
+    });
+}
 
-
+function viewTotalUtilizedBudget() {
+    db.query(`SELECT department.name, 
+            SUM(salary) AS total_salary 
+            FROM employee 
+            INNER JOIN role 
+            ON employee.role_id = role.id 
+            INNER JOIN department 
+            ON role.department_id = department.id 
+            GROUP BY department.name`
+        , function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            runSearch();
+        });
+}
 
 // exit
 function exit() {
