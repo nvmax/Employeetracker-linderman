@@ -78,11 +78,11 @@ function runSearch() {
                 case 'Add Role':
                     addRole();
                     break;
-                
+
                 case 'Update Department Role':
                     updateRoleDepartment();
                     break;
-                    
+
                 case 'Update Employee Role':
                     updateEmployeeRole();
                     break;
@@ -90,7 +90,6 @@ function runSearch() {
                 case 'Update Employee Manager':
                     updateEmployeeManager();
                     break;
-
 
                 case 'Delete Department':
                     deleteDepartment();
@@ -125,11 +124,11 @@ function viewAllEmployees() {
             AS department FROM employee 
             LEFT JOIN role ON employee.role_id = role.id 
             LEFT JOIN department ON role.department_id = department.id`
-            , function (err, res) {
-        if (err) throw err;
-        console.table(res);
-        runSearch();
-    });
+        , function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            runSearch();
+        });
 }
 
 // view all departments
@@ -170,7 +169,7 @@ function viewEmployeesByManager() {
                 }
             ])
             .then(function (answer) {
-                let managerId = answer.manager.split(" ");
+                let managerId = answer.manager.replace(/\D/g, '');
                 // concat employee first and last name from employee table get role name and Manager name from employee table
                 db.query(`
                     SELECT employee.id, 
@@ -181,11 +180,11 @@ function viewEmployeesByManager() {
                     LEFT JOIN role ON employee.role_id = role.id 
                     LEFT JOIN department ON role.department_id = department.id 
                     LEFT JOIN employee manager ON manager.id = employee.manager_id WHERE employee.manager_id = ?`
-                , [managerId[2]], function (err, res) {
-                    if (err) throw err;
-                    console.table(res);
-                    runSearch();
-                });
+                    , [managerId], function (err, res) {
+                        if (err) throw err;
+                        console.table(res);
+                        runSearch();
+                    });
             });
     });
 }
@@ -394,7 +393,7 @@ function updateRoleDepartment() {
                         runSearch();
                     });
             });
-    });    
+    });
 }
 
 // update employee role
@@ -630,6 +629,14 @@ function viewTotalUtilizedBudget() {
         , function (err, res) {
             if (err) throw err;
             console.table(res);
+            let budgetArray = [];
+            for (let i = 0; i < res.length; i++) {
+                budgetArray.push(res[i].total_salary);
+            }
+            let totalBudget = budgetArray.map(Number);
+            let total = totalBudget.reduce((a, b) => a + b, 0);
+            let totalBudgetFormatted = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            console.log("Total Budget: " + totalBudgetFormatted);
             runSearch();
         });
 }
@@ -640,5 +647,4 @@ function exit() {
     console.log('Goodbye!');
     process.exit();
 }
-
 
