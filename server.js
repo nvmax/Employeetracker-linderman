@@ -7,7 +7,7 @@ const db = mysql.createConnection(
     {
         host: 'localhost',
         user: 'root',
-        password: 'password',
+        password: 'Fixprinters.1!',
         database: 'employee_info_db'
     },
     console.log(`Connected to the employees database.`)
@@ -116,19 +116,22 @@ function runSearch() {
 
 // view all employees 
 function viewAllEmployees() {
-    // get all employees with title and department
+    // including employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
     db.query(`
-            SELECT employee.id, 
-            CONCAT(employee.first_name, " ", employee.last_name) 
-            AS employee_name, role.title, department.name 
-            AS department FROM employee 
-            LEFT JOIN role ON employee.role_id = role.id 
-            LEFT JOIN department ON role.department_id = department.id`
+        SELECT employee.id, 
+        CONCAT(employee.first_name, " ", employee.last_name) 
+        AS employee_name, role.title, department.name AS department, 
+        role.salary, CONCAT(manager.first_name, " ", manager.last_name) 
+        AS manager FROM employee 
+        LEFT JOIN role ON employee.role_id = role.id 
+        LEFT JOIN department ON role.department_id = department.id 
+        LEFT JOIN employee manager ON manager.id = employee.manager_id`
         , function (err, res) {
             if (err) throw err;
             console.table(res);
             runSearch();
-        });
+        });  
+    
 }
 
 // view all departments
