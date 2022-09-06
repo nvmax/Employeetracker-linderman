@@ -28,10 +28,10 @@
   
   Employee Tracker</h1>
 
-  ![image](./assets/Images/2022-09-05.png)
+  ![image](./assets/Images/ezgif.com-gif-maker%20(1).gif)
 
   Video Link:
-  https://drive.google.com/file/d/1AB6HfUOGyGwyd-TXPzvVx50gS3Q60ZXk/view?usp=sharing
+  https://drive.google.com/file/d/1gsMeKaD_BDZcTmPw34quBsMrTfg6QSOw/view?usp=sharing
  
   
   
